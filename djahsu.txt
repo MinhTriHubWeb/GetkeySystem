@@ -1,0 +1,471 @@
+-- ============================================
+-- SHADOW CLIENT - KEY SYSTEM + EXECUTOR
+-- ============================================
+
+local KeySystem = {}
+KeySystem.GetKeyLink = "https://MinhTriHubWeb.github.io/GetkeySystem/getkey.html"
+KeySystem.IsValid = false
+KeySystem.CurrentKey = nil
+KeySystem.KeyExpiry = nil
+KeySystem.KeyDays = 0
+
+local function GetHWID()
+    return game:GetService("RbxAnalyticsService"):GetClientId()
+end
+
+-- 50 KEY
+KeySystem.ValidKeys = {
+    ["SHADOW-Hfm3-J3us-Ku2s"] = 30, ["SHADOW-Nx7m-Pq2w-Zu8a"] = 30,
+    ["SHADOW-Vb4k-Lm9x-Qw1p"] = 30, ["SHADOW-Rt6y-Ui3o-Pa5d"] = 14,
+    ["SHADOW-Gh2j-Kl8n-Bv4c"] = 14, ["SHADOW-Xz9q-We5r-Ty7u"] = 14,
+    ["SHADOW-Mn1b-Vc3x-Za6s"] = 7, ["SHADOW-Lk4j-Hg7f-Ds2a"] = 7,
+    ["SHADOW-Po9i-Uy5t-Re8w"] = 7, ["SHADOW-Qa2z-Ws4x-Ed6c"] = 3,
+    ["SHADOW-Rf5v-Tg7y-Hn1u"] = 3, ["SHADOW-Jm3k-Io9p-Lw4q"] = 3,
+    ["SHADOW-Zx6c-Vb2n-Ma8s"] = 30, ["SHADOW-Kl5j-Hg4f-Ds7a"] = 30,
+    ["SHADOW-Yt3r-Ew9q-Wq2p"] = 14, ["SHADOW-Ui6o-Pa1d-Zx5c"] = 14,
+    ["SHADOW-Fg8h-Jk2l-Qw7e"] = 7, ["SHADOW-Nb4v-Cx9z-Mk3j"] = 7,
+    ["SHADOW-Tr6y-Um1n-Bv5f"] = 3, ["SHADOW-Lp8k-Jh4g-Ds9w"] = 3,
+    ["SHADOW-Xc2v-Bn7m-Qa5z"] = 30, ["SHADOW-Ws3x-Ed4r-Fv6t"] = 14,
+    ["SHADOW-Tg8y-Hn2u-Jm9i"] = 7, ["SHADOW-Ik5o-Pl1q-Az4w"] = 3,
+    ["SHADOW-Za7s-Xd3c-Fv9g"] = 30, ["SHADOW-Mj6n-Hy2t-Br5e"] = 14,
+    ["SHADOW-Vf4d-Cx8z-Lk1p"] = 7, ["SHADOW-Qw9e-Rt3y-Ui7o"] = 3,
+    ["SHADOW-Po2i-Mn5b-Vc8x"] = 30, ["SHADOW-Za9w-Sx4e-Dc7r"] = 14,
+    ["SHADOW-Fv2t-Gb6y-Hn3u"] = 7, ["SHADOW-Jm8k-Il4p-Uy1t"] = 3,
+    ["SHADOW-Re9q-Ws5x-Ed3c"] = 30, ["SHADOW-Tg6h-Yj2n-Mk8l"] = 14,
+    ["SHADOW-Bv4f-Cx7z-Da1w"] = 7, ["SHADOW-Nm9k-Lp3j-Hg6f"] = 3,
+    ["SHADOW-Qw5e-Rt8y-Ui2o"] = 30, ["SHADOW-Pa4d-Zx7c-Vb1n"] = 14,
+    ["SHADOW-Mn9k-Jh3g-Fd5s"] = 7, ["SHADOW-Lk2j-Hg8f-Ds4a"] = 3,
+    ["SHADOW-Xz6q-We1r-Ty9u"] = 30, ["SHADOW-Vc4x-Bn7m-Qa2z"] = 14,
+    ["SHADOW-Uy5t-Re8w-Po3i"] = 7, ["SHADOW-Jm9k-Il2p-Uy7t"] = 3,
+    ["SHADOW-Gh4f-Ds8a-Qw3e"] = 60, ["SHADOW-Zx1c-Vb6n-Ma5s"] = 60,
+    ["SHADOW-Kl9j-Hg3f-Ds7a"] = 60, ["SHADOW-Yt8r-Ew2q-Wq6p"] = 9999,
+    ["SHADOW-Ui4o-Pa9d-Zx0c"] = 9999, ["SHADOW-Fg5h-Jk7l-Qw2e"] = 9999,
+}
+
+KeySystem.UsedKeys = {}
+
+function KeySystem.CheckKey(key)
+    local hwid = GetHWID()
+    if not KeySystem.ValidKeys[key] then return false, "Key khong ton tai!" end
+    if KeySystem.UsedKeys[key] and KeySystem.UsedKeys[key] ~= hwid then return false, "Key da duoc dung o may khac!" end
+    local days = KeySystem.ValidKeys[key]
+    KeySystem.UsedKeys[key] = hwid
+    KeySystem.KeyDays = days
+    KeySystem.KeyExpiry = os.time() + (days * 86400)
+    KeySystem.CurrentKey = key
+    KeySystem.IsValid = true
+    KeySystem.SaveKey(key, hwid)
+    return true, "Key hop le! " .. days .. " ngay"
+end
+
+function KeySystem.SaveKey(key, hwid)
+    if writefile then
+        writefile("shadow_key.json", game:GetService("HttpService"):JSONEncode({key=key, hwid=hwid, expiry=KeySystem.KeyExpiry}))
+    end
+end
+
+function KeySystem.LoadKey()
+    if readfile and isfile and isfile("shadow_key.json") then
+        local s, data = pcall(function() return game:GetService("HttpService"):JSONDecode(readfile("shadow_key.json")) end)
+        if s and data.key and data.expiry > os.time() and data.hwid == GetHWID() then
+            KeySystem.CurrentKey = data.key
+            KeySystem.KeyExpiry = data.expiry
+            KeySystem.KeyDays = math.floor((data.expiry - os.time()) / 86400)
+            KeySystem.IsValid = true
+            KeySystem.UsedKeys[data.key] = data.hwid
+            return true
+        end
+    end
+    return false
+end
+
+function KeySystem.ShowKeyGUI()
+    local KeyGui = Instance.new("ScreenGui")
+    KeyGui.Name = "ShadowKey"
+    KeyGui.Parent = game.CoreGui
+    
+    local BG = Instance.new("Frame")
+    BG.Size = UDim2.new(0, 450, 0, 250)
+    BG.Position = UDim2.new(0.5, -225, 0.5, -125)
+    BG.BackgroundColor3 = Color3.fromRGB(15, 5, 30)
+    BG.BorderSizePixel = 0
+    BG.Parent = KeyGui
+    
+    Instance.new("UICorner", BG).CornerRadius = UDim.new(0, 10)
+    local Stroke = Instance.new("UIStroke", BG)
+    Stroke.Color = Color3.fromRGB(150, 0, 200)
+    Stroke.Thickness = 2
+    
+    local Gradient = Instance.new("UIGradient", BG)
+    Gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(75, 0, 130)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(40, 0, 80)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(75, 0, 130))
+    })
+    Gradient.Rotation = 45
+    
+    local Title = Instance.new("TextLabel", BG)
+    Title.Size = UDim2.new(1, 0, 0, 40)
+    Title.Text = "🔑 SHADOW CLIENT"
+    Title.TextColor3 = Color3.fromRGB(200, 150, 255)
+    Title.TextSize = 18
+    Title.Font = Enum.Font.GothamBlack
+    Title.BackgroundColor3 = Color3.fromRGB(20, 10, 40)
+    
+    local KeyLabel = Instance.new("TextLabel", BG)
+    KeyLabel.Size = UDim2.new(0.85, 0, 0, 20)
+    KeyLabel.Position = UDim2.new(0.075, 0, 0.22, 0)
+    KeyLabel.Text = "NHAP KEY:"
+    KeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    KeyLabel.TextSize = 12
+    KeyLabel.Font = Enum.Font.GothamBold
+    KeyLabel.BackgroundTransparency = 1
+    KeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local KeyInput = Instance.new("TextBox", BG)
+    KeyInput.Size = UDim2.new(0.85, 0, 0, 40)
+    KeyInput.Position = UDim2.new(0.075, 0, 0.3, 0)
+    KeyInput.PlaceholderText = "SHADOW-XXXX-XXXX-XXXX"
+    KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    KeyInput.BackgroundColor3 = Color3.fromRGB(30, 15, 50)
+    KeyInput.BorderSizePixel = 0
+    KeyInput.Font = Enum.Font.Code
+    KeyInput.TextSize = 15
+    KeyInput.TextXAlignment = Enum.TextXAlignment.Center
+    Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 6)
+    
+    local TickIcon = Instance.new("TextLabel", BG)
+    TickIcon.Size = UDim2.new(0, 30, 0, 30)
+    TickIcon.Position = UDim2.new(0.85, 0, 0.31, 0)
+    TickIcon.Text = ""
+    TickIcon.TextColor3 = Color3.fromRGB(0, 255, 100)
+    TickIcon.TextSize = 24
+    TickIcon.Font = Enum.Font.GothamBold
+    TickIcon.BackgroundTransparency = 1
+    
+    local Status = Instance.new("TextLabel", BG)
+    Status.Size = UDim2.new(0.85, 0, 0, 25)
+    Status.Position = UDim2.new(0.075, 0, 0.5, 0)
+    Status.Text = ""
+    Status.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Status.TextSize = 12
+    Status.Font = Enum.Font.Gotham
+    Status.BackgroundTransparency = 1
+    Status.TextXAlignment = Enum.TextXAlignment.Center
+    
+    local CheckBtn = Instance.new("TextButton", BG)
+    CheckBtn.Size = UDim2.new(0.5, 0, 0, 40)
+    CheckBtn.Position = UDim2.new(0.25, 0, 0.62, 0)
+    CheckBtn.Text = "CHECK KEY"
+    CheckBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CheckBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 180)
+    CheckBtn.Font = Enum.Font.GothamBold
+    CheckBtn.TextSize = 14
+    Instance.new("UICorner", CheckBtn).CornerRadius = UDim.new(0, 6)
+    
+    local GetKeyBtn = Instance.new("TextButton", BG)
+    GetKeyBtn.Size = UDim2.new(0.5, 0, 0, 35)
+    GetKeyBtn.Position = UDim2.new(0.25, 0, 0.8, 0)
+    GetKeyBtn.Text = "GET KEY"
+    GetKeyBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    GetKeyBtn.BackgroundColor3 = Color3.fromRGB(30, 10, 50)
+    GetKeyBtn.Font = Enum.Font.Gotham
+    GetKeyBtn.TextSize = 12
+    GetKeyBtn.BorderSizePixel = 0
+    Instance.new("UICorner", GetKeyBtn).CornerRadius = UDim.new(0, 6)
+    
+    KeyInput.Changed:Connect(function()
+        local text = KeyInput.Text:upper()
+        KeyInput.Text = text
+        if text:match("^SHADOW%-%w%w%w%w%-%w%w%w%w%-%w%w%w%w$") then
+            TickIcon.Text = "✅"
+        else
+            TickIcon.Text = ""
+        end
+    end)
+    
+    CheckBtn.MouseButton1Click:Connect(function()
+        local input = KeyInput.Text:gsub("%s+", "")
+        if input == "" then Status.Text = "Vui long nhap key!"; Status.TextColor3 = Color3.fromRGB(255, 200, 100); return end
+        if not input:match("^SHADOW%-%w%w%w%w%-%w%w%w%w%-%w%w%w%w$") then Status.Text = "Sai dinh dang!"; Status.TextColor3 = Color3.fromRGB(255, 150, 50); return end
+        Status.Text = "Dang kiem tra..."; Status.TextColor3 = Color3.fromRGB(255, 255, 100)
+        wait(0.5)
+        local success, msg = KeySystem.CheckKey(input)
+        if success then
+            Status.Text = "✅ " .. msg; Status.TextColor3 = Color3.fromRGB(0, 255, 100)
+            CheckBtn.Text = "DANG NHAP..."; CheckBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            wait(1.5)
+            KeyGui:Destroy()
+            CreateExecutor()
+        else
+            Status.Text = "❌ " .. msg; Status.TextColor3 = Color3.fromRGB(255, 50, 50)
+        end
+    end)
+    
+    GetKeyBtn.MouseButton1Click:Connect(function()
+        if syn then syn.request({Url = KeySystem.GetKeyLink, Method = "GET"}) end
+    end)
+end
+
+-- ============================================
+-- EXECUTOR
+-- ============================================
+function CreateExecutor()
+    local ShadowGUI = Instance.new("ScreenGui")
+    ShadowGUI.Name = "ShadowClient"
+    ShadowGUI.Parent = game.CoreGui
+
+    local MainContainer = Instance.new("Frame")
+    MainContainer.Size = UDim2.new(0, 900, 0, 600)
+    MainContainer.Position = UDim2.new(0.5, -450, 0.5, -300)
+    MainContainer.BackgroundColor3 = Color3.fromRGB(15, 5, 30)
+    MainContainer.BorderSizePixel = 0
+    MainContainer.Parent = ShadowGUI
+
+    Instance.new("UICorner", MainContainer).CornerRadius = UDim.new(0, 8)
+    local Stroke = Instance.new("UIStroke", MainContainer)
+    Stroke.Color = Color3.fromRGB(120, 0, 200)
+    Stroke.Thickness = 2
+
+    local TitleBar = Instance.new("Frame", MainContainer)
+    TitleBar.Size = UDim2.new(1, 0, 0, 35)
+    TitleBar.BackgroundColor3 = Color3.fromRGB(20, 10, 40)
+    TitleBar.BorderSizePixel = 0
+
+    local StatusDot = Instance.new("Frame", TitleBar)
+    StatusDot.Size = UDim2.new(0, 12, 0, 12)
+    StatusDot.Position = UDim2.new(0.01, 0, 0.3, 0)
+    StatusDot.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    Instance.new("UICorner", StatusDot).CornerRadius = UDim.new(1, 0)
+
+    local TitleText = Instance.new("TextLabel", TitleBar)
+    TitleText.Size = UDim2.new(0, 200, 1, 0)
+    TitleText.Position = UDim2.new(0.03, 0, 0, 0)
+    TitleText.Text = "Shadow Client"
+    TitleText.TextColor3 = Color3.fromRGB(200, 150, 255)
+    TitleText.TextSize = 18
+    TitleText.Font = Enum.Font.GothamBlack
+    TitleText.BackgroundTransparency = 1
+    TitleText.TextXAlignment = Enum.TextXAlignment.Left
+
+    local TabBar = Instance.new("Frame", MainContainer)
+    TabBar.Size = UDim2.new(1, 0, 0, 30)
+    TabBar.Position = UDim2.new(0, 0, 0, 35)
+    TabBar.BackgroundColor3 = Color3.fromRGB(20, 10, 40)
+    TabBar.BorderSizePixel = 0
+
+    local TabContainer = Instance.new("Frame", TabBar)
+    TabContainer.Size = UDim2.new(1, -35, 0, 28)
+    TabContainer.Position = UDim2.new(0, 5, 0, 1)
+    TabContainer.BackgroundTransparency = 1
+
+    local Tabs = {}
+    local function CreateTab(name)
+        local Tab = Instance.new("TextButton", TabContainer)
+        Tab.Size = UDim2.new(0, 120, 1, 0)
+        Tab.Position = UDim2.new(0, (#Tabs * 125), 0, 0)
+        Tab.Text = name or ("Tab " .. (#Tabs + 1))
+        Tab.TextColor3 = Color3.fromRGB(200, 200, 200)
+        Tab.BackgroundColor3 = Color3.fromRGB(30, 15, 50)
+        Tab.Font = Enum.Font.Gotham
+        Tab.TextSize = 13
+        table.insert(Tabs, Tab)
+        return Tab
+    end
+    CreateTab("Main")
+
+    local AddTabBtn = Instance.new("TextButton", MainContainer)
+    AddTabBtn.Size = UDim2.new(0, 30, 0, 25)
+    AddTabBtn.Position = UDim2.new(1, -35, 0, 38)
+    AddTabBtn.Text = "+"
+    AddTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    AddTabBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 180)
+    AddTabBtn.Font = Enum.Font.GothamBold
+    AddTabBtn.TextSize = 20
+    AddTabBtn.MouseButton1Click:Connect(function() CreateTab("New Tab") end)
+
+    local EditorFrame = Instance.new("Frame", MainContainer)
+    EditorFrame.Size = UDim2.new(1, -40, 1, -105)
+    EditorFrame.Position = UDim2.new(0, 5, 0, 70)
+    EditorFrame.BackgroundColor3 = Color3.fromRGB(25, 10, 45)
+    EditorFrame.BorderSizePixel = 0
+
+    local CodeEditor = Instance.new("TextBox", EditorFrame)
+    CodeEditor.Size = UDim2.new(1, 0, 1, 0)
+    CodeEditor.BackgroundColor3 = Color3.fromRGB(18, 5, 30)
+    CodeEditor.BorderSizePixel = 0
+    CodeEditor.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CodeEditor.TextSize = 14
+    CodeEditor.Font = Enum.Font.Code
+    CodeEditor.MultiLine = true
+    CodeEditor.TextXAlignment = Enum.TextXAlignment.Left
+    CodeEditor.TextYAlignment = Enum.TextYAlignment.Top
+    CodeEditor.ClearTextOnFocus = false
+    CodeEditor.Text = "# Welcome to Shadow Client\nprint('UNC 99% Ready')"
+
+    local Minimap = Instance.new("Frame", MainContainer)
+    Minimap.Size = UDim2.new(0, 30, 1, -105)
+    Minimap.Position = UDim2.new(1, -35, 0, 70)
+    Minimap.BackgroundColor3 = Color3.fromRGB(15, 5, 25)
+    Minimap.BorderSizePixel = 0
+
+    local MinimapContent = Instance.new("Frame", Minimap)
+    MinimapContent.Size = UDim2.new(1, 0, 1, 0)
+    MinimapContent.BackgroundColor3 = Color3.fromRGB(20, 10, 30)
+    MinimapContent.BorderSizePixel = 0
+
+    CodeEditor.Changed:Connect(function()
+        for _, child in pairs(MinimapContent:GetChildren()) do
+            if child:IsA("Frame") then child:Destroy() end
+        end
+        local lines = CodeEditor.Text:split("\n")
+        for i, line in ipairs(lines) do
+            local success, err = pcall(function() loadstring(line) end)
+            if not success then
+                local ErrorMarker = Instance.new("Frame", MinimapContent)
+                ErrorMarker.Size = UDim2.new(1, 0, 0, 2)
+                ErrorMarker.Position = UDim2.new(0, 0, i/#lines, 0)
+                ErrorMarker.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+            end
+        end
+    end)
+
+    local ButtonBar = Instance.new("Frame", MainContainer)
+    ButtonBar.Size = UDim2.new(0.7, 0, 0, 35)
+    ButtonBar.Position = UDim2.new(0, 5, 1, -40)
+    ButtonBar.BackgroundTransparency = 1
+
+    local function CreateBtn(text, color, pos)
+        local btn = Instance.new("TextButton", ButtonBar)
+        btn.Size = UDim2.new(0, 70, 0, 30)
+        btn.Position = UDim2.new(0, pos, 0, 0)
+        btn.Text = text
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.BackgroundColor3 = color
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 14
+        return btn
+    end
+
+    local RunBtn = CreateBtn("▶ Run", Color3.fromRGB(0, 150, 0), 0)
+    local SaveBtn = CreateBtn("💾 Save", Color3.fromRGB(0, 100, 200), 80)
+    local ClearBtn = CreateBtn("🗑 Clear", Color3.fromRGB(200, 100, 0), 160)
+    local KillBtn = CreateBtn("💀 Kill", Color3.fromRGB(200, 0, 0), 240)
+
+    local InjectBtn = Instance.new("TextButton", MainContainer)
+    InjectBtn.Size = UDim2.new(0, 100, 0, 30)
+    InjectBtn.Position = UDim2.new(1, -110, 1, -40)
+    InjectBtn.Text = "💉 Inject"
+    InjectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    InjectBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 200)
+    InjectBtn.Font = Enum.Font.GothamBold
+    InjectBtn.TextSize = 14
+
+    local SettingsBtn = Instance.new("TextButton", MainContainer)
+    SettingsBtn.Size = UDim2.new(0, 35, 0, 35)
+    SettingsBtn.Position = UDim2.new(0, 10, 1, -42)
+    SettingsBtn.Text = "⚙"
+    SettingsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SettingsBtn.BackgroundColor3 = Color3.fromRGB(30, 10, 50)
+    SettingsBtn.Font = Enum.Font.GothamBold
+    SettingsBtn.TextSize = 20
+
+    RunBtn.MouseButton1Click:Connect(function() pcall(function() loadstring(CodeEditor.Text)() end) end)
+    SaveBtn.MouseButton1Click:Connect(function() if writefile then writefile("ShadowScript.txt", CodeEditor.Text) end end)
+    ClearBtn.MouseButton1Click:Connect(function() CodeEditor.Text = "" end)
+    KillBtn.MouseButton1Click:Connect(function() game:Shutdown() end)
+    InjectBtn.MouseButton1Click:Connect(function()
+        StatusDot.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+        spawn(function() wait(2) StatusDot.BackgroundColor3 = Color3.fromRGB(0, 255, 0) end)
+    end)
+
+    local SettingsPanel = Instance.new("Frame", ShadowGUI)
+    SettingsPanel.Size = UDim2.new(0, 350, 0, 200)
+    SettingsPanel.Position = UDim2.new(0.5, -175, 0.5, -100)
+    SettingsPanel.BackgroundColor3 = Color3.fromRGB(20, 5, 40)
+    SettingsPanel.BorderSizePixel = 0
+    SettingsPanel.Visible = false
+    Instance.new("UICorner", SettingsPanel).CornerRadius = UDim.new(0, 8)
+    Instance.new("UIStroke", SettingsPanel).Color = Color3.fromRGB(150, 0, 200)
+    Instance.new("UIStroke", SettingsPanel).Thickness = 2
+
+    local SettingsTitle = Instance.new("TextLabel", SettingsPanel)
+    SettingsTitle.Size = UDim2.new(1, 0, 0, 35)
+    SettingsTitle.Text = "⚙ Settings"
+    SettingsTitle.TextColor3 = Color3.fromRGB(200, 150, 255)
+    SettingsTitle.TextSize = 18
+    SettingsTitle.Font = Enum.Font.GothamBlack
+    SettingsTitle.BackgroundColor3 = Color3.fromRGB(25, 10, 45)
+
+    local VersionBtn = Instance.new("TextButton", SettingsPanel)
+    VersionBtn.Size = UDim2.new(0.8, 0, 0, 35)
+    VersionBtn.Position = UDim2.new(0.1, 0, 0.25, 0)
+    VersionBtn.Text = "Roblox Version"
+    VersionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    VersionBtn.BackgroundColor3 = Color3.fromRGB(50, 20, 80)
+    VersionBtn.Font = Enum.Font.GothamBold
+    VersionBtn.TextSize = 14
+    VersionBtn.MouseButton1Click:Connect(function()
+        local msg = Instance.new("Frame", ShadowGUI)
+        msg.Size = UDim2.new(0, 300, 0, 80)
+        msg.Position = UDim2.new(0.5, -150, 0.5, -40)
+        msg.BackgroundColor3 = Color3.fromRGB(20, 5, 40)
+        local txt = Instance.new("TextLabel", msg)
+        txt.Size = UDim2.new(1, 0, 1, 0)
+        txt.Text = "Version: " .. game.PlaceVersion .. "\nShadow Client v1.0.0"
+        txt.TextColor3 = Color3.fromRGB(255, 255, 255)
+        txt.TextSize = 14
+        txt.Font = Enum.Font.Gotham
+        txt.BackgroundTransparency = 1
+        spawn(function() wait(2) msg:Destroy() end)
+    end)
+
+    local DiscordBtn = Instance.new("TextButton", SettingsPanel)
+    DiscordBtn.Size = UDim2.new(0.8, 0, 0, 35)
+    DiscordBtn.Position = UDim2.new(0.1, 0, 0.45, 0)
+    DiscordBtn.Text = "Discord"
+    DiscordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    DiscordBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+    DiscordBtn.Font = Enum.Font.GothamBold
+    DiscordBtn.TextSize = 14
+    DiscordBtn.MouseButton1Click:Connect(function()
+        if syn then syn.request({Url = "https://discord.gg/UHCHSnD7Xj", Method = "GET"}) end
+    end)
+
+    local CloseBtn = Instance.new("TextButton", SettingsPanel)
+    CloseBtn.Size = UDim2.new(0.8, 0, 0, 35)
+    CloseBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
+    CloseBtn.Text = "Close"
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.TextSize = 14
+    CloseBtn.MouseButton1Click:Connect(function() SettingsPanel.Visible = false end)
+    SettingsBtn.MouseButton1Click:Connect(function() SettingsPanel.Visible = not SettingsPanel.Visible end)
+
+    local UIS = game:GetService("UserInputService")
+    local dragging, dragStart, startPos = false, nil, nil
+    TitleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true; dragStart = input.Position; startPos = MainContainer.Position
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            MainContainer.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+
+    print("[Shadow Client] UNC 99% Ready!")
+end
+
+-- START
+if KeySystem.LoadKey() then
+    CreateExecutor()
+else
+    KeySystem.ShowKeyGUI()
+end
