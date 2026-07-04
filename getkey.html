@@ -28,7 +28,7 @@
         h1 { color: #c896ff; font-size: 24px; margin-bottom: 5px; }
         .subtitle { color: #aaa; font-size: 13px; margin-bottom: 20px; }
         .progress-bar { width: 100%; height: 8px; background: #333; border-radius: 4px; margin: 15px 0; overflow: hidden; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #9600e6, #00ff66); transition: width 0.5s; border-radius: 4px; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #9600e6, #00ff66); transition: width 0.5s; border-radius: 4px; width: 0%; }
         .status { font-size: 13px; color: #aaa; margin: 8px 0; }
         .quest-box { background: rgba(30, 10, 50, 0.8); border-radius: 10px; padding: 15px; margin: 15px 0; text-align: left; }
         .quest-item {
@@ -66,7 +66,6 @@
         .btn:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(150, 0, 230, 0.5); }
         .btn.copy { background: linear-gradient(135deg, #006600, #00aa00); display: none; }
         .btn:disabled { background: #444; cursor: not-allowed; transform: none; }
-        .lock-icon { font-size: 18px; }
     </style>
 </head>
 <body>
@@ -74,9 +73,7 @@
         <h1>🔑 Shadow Client</h1>
         <p class="subtitle">Hoàn thành 3 quest để nhận key!</p>
         
-        <div class="progress-bar">
-            <div class="progress-fill" id="progress" style="width: 0%"></div>
-        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
         <p class="status" id="status">0/3 quest hoàn thành</p>
         
         <div class="quest-box" id="questList"></div>
@@ -93,16 +90,16 @@
         ];
         
         var completed = 0;
-        var currentQuest = 0; // Quest đang được phép làm
+        var currentQuest = 0;
         var countdownActive = false;
         var countdownSeconds = 0;
         var countdownInterval = null;
         
         var keys = [
-            "SHADOW-Hfm3-J3us-Ku2s","SHADOW-Nx7m-Pq2w-Zu8a","SHADOW-Vb4k-Lm9x-Qw1p",
-            "SHADOW-Rt6y-Ui3o-Pa5d","SHADOW-Gh2j-Kl8n-Bv4c","SHADOW-Xz9q-We5r-Ty7u",
-            "SHADOW-Mn1b-Vc3x-Za6s","SHADOW-Lk4j-Hg7f-Ds2a","SHADOW-Po9i-Uy5t-Re8w",
-            "SHADOW-Qa2z-Ws4x-Ed6c"
+            "SHADOW-HFM3-J3US-KU2S","SHADOW-NX7M-PQ2W-ZU8A","SHADOW-VB4K-LM9X-QW1P",
+            "SHADOW-RT6Y-UI3O-PA5D","SHADOW-GH2J-KL8N-BV4C","SHADOW-XZ9Q-WE5R-TY7U",
+            "SHADOW-MN1B-VC3X-ZA6S","SHADOW-LK4J-HG7F-DS2A","SHADOW-PO9I-UY5T-RE8W",
+            "SHADOW-QA2Z-WS4X-ED6C"
         ];
         
         var questDivs = [];
@@ -133,7 +130,6 @@
             
             var quest = questDivs[i];
             
-            // Mở link quest
             if (quests[i].type == "share") {
                 if (navigator.share) {
                     navigator.share({ title: 'Shadow Client', text: 'Shadow Client - Roblox Executor UNC 99%', url: window.location.href });
@@ -145,7 +141,6 @@
                 window.open(quests[i].link, '_blank');
             }
             
-            // Bắt đầu đếm ngược 30s
             countdownActive = true;
             countdownSeconds = 30;
             quest.className = 'quest-item countdown';
@@ -162,7 +157,6 @@
                     clearInterval(countdownInterval);
                     countdownActive = false;
                     
-                    // Hoàn thành quest
                     quest.className = 'quest-item completed';
                     quest.querySelector('.quest-num').textContent = '✓';
                     timerDisplay.textContent = '✅';
@@ -171,7 +165,6 @@
                     completed++;
                     currentQuest = i + 1;
                     
-                    // Mở khóa quest tiếp theo
                     if (currentQuest < quests.length) {
                         questDivs[currentQuest].className = 'quest-item active';
                         questDivs[currentQuest].querySelector('.quest-num').textContent = currentQuest + 1;
@@ -194,9 +187,8 @@
         
         function showKey() {
             var randomKey = keys[Math.floor(Math.random() * keys.length)];
-            var keyDiv = document.getElementById('keyDisplay');
-            keyDiv.style.display = 'block';
-            keyDiv.textContent = randomKey;
+            document.getElementById('keyDisplay').style.display = 'block';
+            document.getElementById('keyDisplay').textContent = randomKey;
             document.getElementById('copyBtn').style.display = 'inline-block';
             document.getElementById('status').textContent = '✅ Chúc mừng! Key của bạn:';
         }
