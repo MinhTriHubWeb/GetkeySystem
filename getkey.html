@@ -19,29 +19,37 @@
             background: rgba(20, 5, 40, 0.95);
             border: 2px solid #9600e6;
             border-radius: 15px;
-            padding: 40px;
+            padding: 35px;
             text-align: center;
-            max-width: 500px;
+            max-width: 520px;
             width: 90%;
             box-shadow: 0 0 30px rgba(150, 0, 230, 0.3);
         }
-        h1 { color: #c896ff; font-size: 24px; margin-bottom: 10px; }
-        .subtitle { color: #aaa; font-size: 14px; margin-bottom: 30px; }
-        .quest-box { background: rgba(30, 10, 50, 0.8); border-radius: 10px; padding: 20px; margin: 20px 0; text-align: left; }
+        h1 { color: #c896ff; font-size: 24px; margin-bottom: 5px; }
+        .subtitle { color: #aaa; font-size: 13px; margin-bottom: 20px; }
+        .progress-bar { width: 100%; height: 8px; background: #333; border-radius: 4px; margin: 15px 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #9600e6, #00ff66); transition: width 0.5s; border-radius: 4px; }
+        .status { font-size: 13px; color: #aaa; margin: 8px 0; }
+        .quest-box { background: rgba(30, 10, 50, 0.8); border-radius: 10px; padding: 15px; margin: 15px 0; text-align: left; }
         .quest-item {
-            display: flex; align-items: center; gap: 15px; padding: 15px; margin: 10px 0;
+            display: flex; align-items: center; gap: 12px; padding: 12px; margin: 8px 0;
             background: rgba(40, 15, 60, 0.6); border-radius: 8px; cursor: pointer;
-            transition: all 0.3s; border: 1px solid transparent;
+            transition: all 0.3s; border: 1px solid transparent; position: relative;
         }
-        .quest-item:hover { background: rgba(100, 0, 180, 0.4); border: 1px solid #9600e6; }
+        .quest-item.locked { opacity: 0.5; cursor: not-allowed; filter: grayscale(50%); }
+        .quest-item.active:hover { background: rgba(100, 0, 180, 0.4); border: 1px solid #9600e6; }
         .quest-item.completed { background: rgba(0, 150, 50, 0.3); border: 1px solid #00ff66; cursor: default; }
+        .quest-item.countdown { background: rgba(255, 150, 0, 0.2); border: 1px solid #ffaa00; }
         .quest-num {
-            width: 30px; height: 30px; background: #9600e6; border-radius: 50%;
+            width: 32px; height: 32px; background: #9600e6; border-radius: 50%;
             display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0;
         }
+        .quest-item.locked .quest-num { background: #555; }
         .quest-item.completed .quest-num { background: #00cc44; }
+        .quest-item.countdown .quest-num { background: #ff8800; }
         .quest-text { flex: 1; font-size: 13px; }
-        .quest-reward { color: #ffcc00; font-size: 12px; font-weight: bold; }
+        .quest-timer { color: #ffaa00; font-size: 12px; font-weight: bold; min-width: 40px; text-align: right; }
+        .quest-reward { color: #ffcc00; font-size: 11px; font-weight: bold; }
         .key-display {
             background: #000; color: #00ff66; padding: 15px; border-radius: 8px;
             font-family: 'Courier New', monospace; font-size: 18px; margin: 20px 0;
@@ -50,74 +58,156 @@
         }
         @keyframes glow { from { box-shadow: 0 0 10px rgba(0,255,100,0.3); } to { box-shadow: 0 0 25px rgba(0,255,100,0.6); } }
         .btn {
-            display: inline-block; padding: 12px 30px;
+            display: inline-block; padding: 12px 28px;
             background: linear-gradient(135deg, #7800cc, #9600e6); color: white;
-            border: none; border-radius: 25px; font-size: 16px; font-weight: bold;
-            cursor: pointer; margin: 10px; transition: all 0.3s; text-decoration: none;
+            border: none; border-radius: 25px; font-size: 15px; font-weight: bold;
+            cursor: pointer; margin: 8px; transition: all 0.3s; text-decoration: none;
         }
         .btn:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(150, 0, 230, 0.5); }
         .btn.copy { background: linear-gradient(135deg, #006600, #00aa00); display: none; }
-        .progress-bar { width: 100%; height: 8px; background: #333; border-radius: 4px; margin: 20px 0; overflow: hidden; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #9600e6, #00ff66); transition: width 0.5s; border-radius: 4px; }
-        .status { font-size: 13px; color: #aaa; margin: 10px 0; }
+        .btn:disabled { background: #444; cursor: not-allowed; transform: none; }
+        .lock-icon { font-size: 18px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔑 Shadow Client</h1>
-        <p class="subtitle">Hoan thanh 3 quest de nhan key!</p>
-        <div class="progress-bar"><div class="progress-fill" id="progress" style="width: 0%"></div></div>
-        <p class="status" id="status">0/3 quest hoan thanh</p>
+        <p class="subtitle">Hoàn thành 3 quest để nhận key!</p>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress" style="width: 0%"></div>
+        </div>
+        <p class="status" id="status">0/3 quest hoàn thành</p>
+        
         <div class="quest-box" id="questList"></div>
+        
         <div class="key-display" id="keyDisplay"></div>
         <button class="btn copy" id="copyBtn" onclick="copyKey()">📋 COPY KEY</button>
     </div>
+
     <script>
         var quests = [
-            { name: "Tham gia Discord Server", link: "https://discord.gg/UHCHSnD7Xj", reward: "+1 ngay" },
-            { name: "Xem kenh YouTube", link: "https://youtube.com/@ShadowClient", reward: "+1 ngay" },
-            { name: "Chia se link nay cho ban be", link: "#", reward: "+1 ngay", action: "share" }
+            { name: "Đăng ký kênh YouTube", link: "https://youtube.com/@Shadow_Roblox_executor?sub_confirmation=1", reward: "+1 ngày", type: "youtube" },
+            { name: "Tham gia Discord Server", link: "https://discord.gg/UHCHSnD7Xj", reward: "+1 ngày", type: "discord" },
+            { name: "Chia sẻ link cho bạn bè", link: "#", reward: "+1 ngày", type: "share" }
         ];
+        
         var completed = 0;
-        var keys = ["SHADOW-Hfm3-J3us-Ku2s","SHADOW-Nx7m-Pq2w-Zu8a","SHADOW-Vb4k-Lm9x-Qw1p","SHADOW-Rt6y-Ui3o-Pa5d","SHADOW-Gh2j-Kl8n-Bv4c","SHADOW-Xz9q-We5r-Ty7u","SHADOW-Mn1b-Vc3x-Za6s","SHADOW-Lk4j-Hg7f-Ds2a","SHADOW-Po9i-Uy5t-Re8w","SHADOW-Qa2z-Ws4x-Ed6c"];
+        var currentQuest = 0; // Quest đang được phép làm
+        var countdownActive = false;
+        var countdownSeconds = 0;
+        var countdownInterval = null;
+        
+        var keys = [
+            "SHADOW-Hfm3-J3us-Ku2s","SHADOW-Nx7m-Pq2w-Zu8a","SHADOW-Vb4k-Lm9x-Qw1p",
+            "SHADOW-Rt6y-Ui3o-Pa5d","SHADOW-Gh2j-Kl8n-Bv4c","SHADOW-Xz9q-We5r-Ty7u",
+            "SHADOW-Mn1b-Vc3x-Za6s","SHADOW-Lk4j-Hg7f-Ds2a","SHADOW-Po9i-Uy5t-Re8w",
+            "SHADOW-Qa2z-Ws4x-Ed6c"
+        ];
+        
+        var questDivs = [];
+        
         function loadQuests() {
             var list = document.getElementById('questList');
             quests.forEach(function(q, i) {
                 var div = document.createElement('div');
-                div.className = 'quest-item'; div.id = 'quest' + i;
-                div.innerHTML = '<div class="quest-num">' + (i+1) + '</div><div class="quest-text">' + q.name + '</div><div class="quest-reward">' + q.reward + '</div>';
-                div.onclick = function() { completeQuest(i); };
+                div.className = 'quest-item';
+                if (i > currentQuest) div.className += ' locked';
+                if (i === currentQuest) div.className += ' active';
+                div.id = 'quest' + i;
+                div.innerHTML = 
+                    '<div class="quest-num">' + (i > currentQuest ? '🔒' : (i+1)) + '</div>' +
+                    '<div class="quest-text">' + q.name + '</div>' +
+                    '<div class="quest-timer" id="timer' + i + '"></div>' +
+                    '<div class="quest-reward">' + q.reward + '</div>';
+                div.onclick = function() { startQuest(i); };
                 list.appendChild(div);
+                questDivs.push(div);
             });
         }
-        function completeQuest(i) {
-            var quest = document.getElementById('quest' + i);
-            if (quest.className.indexOf('completed') >= 0) return;
-            if (quests[i].action == 'share') {
-                if (navigator.share) { navigator.share({ title: 'Shadow Client', text: 'Shadow Client - Roblox Executor UNC 99%', url: window.location.href }); }
-                else { navigator.clipboard.writeText(window.location.href); alert('Link da duoc copy! Hay chia se cho ban be!'); }
-            } else { window.open(quests[i].link, '_blank'); }
-            quest.className = 'quest-item completed';
-            quest.querySelector('.quest-num').textContent = '✓';
-            completed++; updateProgress();
+        
+        function startQuest(i) {
+            if (countdownActive) return;
+            if (i > currentQuest) return;
+            if (questDivs[i].className.indexOf('completed') >= 0) return;
+            
+            var quest = questDivs[i];
+            
+            // Mở link quest
+            if (quests[i].type == "share") {
+                if (navigator.share) {
+                    navigator.share({ title: 'Shadow Client', text: 'Shadow Client - Roblox Executor UNC 99%', url: window.location.href });
+                } else {
+                    navigator.clipboard.writeText(window.location.href);
+                    alert('Link đã được copy! Hãy chia sẻ cho bạn bè!');
+                }
+            } else {
+                window.open(quests[i].link, '_blank');
+            }
+            
+            // Bắt đầu đếm ngược 30s
+            countdownActive = true;
+            countdownSeconds = 30;
+            quest.className = 'quest-item countdown';
+            quest.querySelector('.quest-num').textContent = '⏳';
+            
+            var timerDisplay = document.getElementById('timer' + i);
+            timerDisplay.textContent = countdownSeconds + 's';
+            
+            countdownInterval = setInterval(function() {
+                countdownSeconds--;
+                timerDisplay.textContent = countdownSeconds + 's';
+                
+                if (countdownSeconds <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownActive = false;
+                    
+                    // Hoàn thành quest
+                    quest.className = 'quest-item completed';
+                    quest.querySelector('.quest-num').textContent = '✓';
+                    timerDisplay.textContent = '✅';
+                    quests[i].completed = true;
+                    
+                    completed++;
+                    currentQuest = i + 1;
+                    
+                    // Mở khóa quest tiếp theo
+                    if (currentQuest < quests.length) {
+                        questDivs[currentQuest].className = 'quest-item active';
+                        questDivs[currentQuest].querySelector('.quest-num').textContent = currentQuest + 1;
+                    }
+                    
+                    updateProgress();
+                }
+            }, 1000);
         }
+        
         function updateProgress() {
             var pct = (completed / quests.length) * 100;
             document.getElementById('progress').style.width = pct + '%';
-            document.getElementById('status').textContent = completed + '/' + quests.length + ' quest hoan thanh';
-            if (completed >= quests.length) { showKey(); }
+            document.getElementById('status').textContent = completed + '/' + quests.length + ' quest hoàn thành';
+            
+            if (completed >= quests.length) {
+                showKey();
+            }
         }
+        
         function showKey() {
             var randomKey = keys[Math.floor(Math.random() * keys.length)];
             var keyDiv = document.getElementById('keyDisplay');
-            keyDiv.style.display = 'block'; keyDiv.textContent = randomKey;
+            keyDiv.style.display = 'block';
+            keyDiv.textContent = randomKey;
             document.getElementById('copyBtn').style.display = 'inline-block';
-            document.getElementById('status').textContent = '✅ Chuc mung! Key cua ban:';
+            document.getElementById('status').textContent = '✅ Chúc mừng! Key của bạn:';
         }
+        
         function copyKey() {
             var key = document.getElementById('keyDisplay').textContent;
-            navigator.clipboard.writeText(key).then(function() { alert('Key da duoc copy! Dan vao Shadow Client!'); });
+            navigator.clipboard.writeText(key).then(function() {
+                alert('Key đã được copy! Dán vào Shadow Client để sử dụng!');
+            });
         }
+        
         loadQuests();
     </script>
 </body>
